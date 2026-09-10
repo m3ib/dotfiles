@@ -6,10 +6,18 @@ import qs.services
 Clickable {
   id: root
 
+  readonly property string caffeineId: "explicitUser"
+
   implicitWidth: icon.width
   implicitHeight: icon.height
 
-  area.onClicked: Caffeine.toggle()
+  area.onClicked: {
+    if (!Caffeine.isRunning) {
+      Caffeine.enableRequest(caffeineId);
+    } else {
+      Caffeine.disableRequest(caffeineId);
+    }
+  }
 
   Icon {
     id: icon

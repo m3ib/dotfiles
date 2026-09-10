@@ -92,7 +92,7 @@ Item {
         Button {
           Layout.fillWidth: true
           height: body.height + 8*2
-          area.onClicked: Clock.togglePomoPause()
+          area.onClicked: Clock.togglePomo()
 
           bg: Config.clr.bgLt
           body.text: Clock.pomo.paused ? "" :  ""
@@ -130,7 +130,7 @@ Item {
       }
 
       Text {
-        text: `${Clock.fmtHumanDuration(Clock.pomoTime)} Focused Today.`
+        text: `${Clock.fmtHumanDuration(Clock.todayFocusTimeMsec)} Focused Today.`
       }
 
       Button {

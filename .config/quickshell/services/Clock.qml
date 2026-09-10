@@ -10,15 +10,16 @@ import qs.services
 Singleton {
   id: root
 
+  readonly property string caffeineId: "focusing"
+
   property ListModel timersModel: ListModel {}
   property bool stopwatchRunning: false
   property real stopwatch: 0
 
   property bool focusing: false
-  // statistics
   property int pomoSessions: 0
-  property real pomoTime: 0 // milliseconds
-  property real loggedPomoTime: 0 // milliseconds
+  property real todayFocusTimeMsec: 0
+  property real sessionFocusTimeMsec: 0
 
   property var pomoDurations: Object.freeze({
     FOCUS: Config.pomo.focus,
@@ -91,7 +92,247 @@ Singleton {
   }
 
   Component.onCompleted: {
-    loadFocusTime();
+    root.todayFocusTimeMsec = calcFocusToday();
+  }
+
+  /** Set stopwatch running state.
+   * @param {Boolean} state
+   */
+  function setStopwatch(state) {
+    root.stopwatchRunning = state;
+  }
+
+  /** Toggle stopwatch running state. */
+  function toggleStopwatch() {
+    root.stopwatchRunning = !root.stopwatchRunning;
+  }
+
+  /** Reset stopwatch and pause it. */
+  function resetStopwatch() {
+    root.stopwatchRunning = false;
+    root.stopwatch = 0;
+  }
+
+  /** Create a new timer.
+   * @param {String} timerTitle The title of the timer.
+   * @param {Number} duration The duration of the timer in milliseconds.
+   * @return {Number} The id of the timer.
+   */
+  function createTimer(timerTitle, duration) {
+    const timerId = root.timersModel.count;
+    root.timersModel.append({
+      id: timerId,
+      title: timerTitle || "Unnamed",
+      running: true,
+      initialDuration: duration,
+      timeLeft: duration
+    });
+
+    return timerId;
+  }
+
+  /** Set a timer's running state.
+   * @param {Number} id The id of the timer.
+   * @param {Boolean} state The state to set the timer to.
+   */
+  function setTimer(id, state) {
+    root.timersModel.setProperty(_getRealTimerId(id), "running", state);
+  }
+
+  /** Toggle a timer's running state.
+   * @param {Number} id The id of the timer.
+   */
+  function toggleTimer(id) {
+    const timerIdx = _getRealTimerId(id)
+    const timer = root.timersModel.get(timerIdx);
+
+    root.timersModel.setProperty(timerIdx, "running", !timer.running);
+  }
+
+  /** Reset a timer and pause it.
+   * @param {Number} id The id of the timer.
+   */
+  function resetTimer(id) {
+    const timerIdx = _getRealTimerId(id)
+    const timer = root.timersModel.get(timerIdx);
+
+    root.timersModel.setProperty(timerIdx, "running", false);
+    root.timersModel.setProperty(timerIdx, "timeLeft", timer.initialDuration);
+  }
+
+  /** Remove a timer.
+   * @param {Number} id The id of the timer.
+   */
+  function removeTimer(id) {
+    root.timersModel.remove(_getRealTimerId(id));
+  }
+
+  /** Find the timer index in timersModel that has a certain id.
+   * @param {Number} id The id of the timer.
+   * @return {Number || Null} The timer's index or Null if it's not found.
+   */
+  function _getRealTimerId(id) {
+    for (let i = 0; i < root.timersModel.count; i++) {
+      const current = root.timersModel.get(i);
+
+      if (current.id !== id) continue;
+
+      return i;
+    }
+
+    return Null;
+  }
+
+  /** Start a new focus session. */
+  function startFocusSession() {
+    root.focusing = true;
+    root.pomo.paused = false;
+    root.pomoSessions = 0;
+    setPomoMode("FOCUS");
+    Caffeine.enableRequest(root.caffeineId);
+  }
+
+  /** End the current focus session. */
+  function endFocusSession() {
+    root.focusing = false;
+    root.pomo.paused = true;
+    nextPomoMode(); logFocusSession();
+    root.todayFocusTimeMsec = calcFocusToday();
+    Caffeine.disableRequest(root.caffeineId);
+  }
+
+  /** Go to the next pomodoro mode and handle status updates. */
+  function nextPomoMode() {
+    const m = getNextPomo();
+
+    if (m === "FOCUS") {
+      root.pomoSessions++;
+    }
+
+    // auto-start behavior
+    if (pomo.timeLeft !== 0) {
+      root.pomo.paused = false;
+    } else {
+      // TODO: consult the user config (not yet created) instead
+      root.pomo.paused = true;
+    }
+
+    if (root.pomo.mode === "FOCUS") {
+      root.sessionFocusTimeMsec += root.pomo.initialDuration - root.pomo.timeLeft;
+    }
+    setPomoMode(m);
+  }
+
+  /** Set pomodoro mode.
+   * Note: simply sets the active mode and timer.
+   * @param {String} m The mode.
+   * @param {Number} duration A custom duration (milliseconds), if not specified uses the default value for the given mode.
+   */
+  function setPomoMode(m, duration = undefined) {
+    if (!m in Object.keys(root.pomoDurations)) {
+      console.error(`SetPomoMode: invalid mode '${m}'.`);
+      return;
+    }
+
+    const pomoTime = duration ?? root.pomoDurations[m];
+
+    root.pomo.mode = m;
+    root.pomo.initialDuration = pomoTime;
+    root.pomo.timeLeft = pomoTime;
+  }
+
+  /** Get the next pomo mode after the current one.
+   * @return {String} The next pomo mode.
+   */
+  function getNextPomo() {
+    if (root.pomo.mode !== "FOCUS") {
+      return "FOCUS";
+    }
+
+    const nextSessionsCount = root.pomoSessions + 1;
+    if (nextSessionsCount % Config.pomo.sessionsBeforeLongBreak === 0) {
+      return "LONG_BREAK"
+    }
+
+    return "SHORT_BREAK";
+  }
+
+  /** Toggle pomodoro pause state. */
+  function togglePomo() {
+    root.pomo.paused = !root.pomo.paused;
+  }
+
+  /** Reset the pomodoro timer to the initial value. */
+  function resetPomoTimer() {
+    root.pomo.paused = true;
+    root.pomo.timeLeft = root.pomo.initialDuration;
+  }
+
+  /** Change pomodoro mode timer by delta amount.
+   * @param {Number} delta Number of milliseconds.
+   */
+  function updatePomoTimer(delta) {
+    root.pomo.timeLeft = Math.max(0, root.pomoTimer + delta);
+  }
+
+  /** Store focus time stastics into a file. */
+  function logFocusSession() {
+    if (root.sessionFocusTimeMsec <= 0) return;
+
+    let data = JSON.parse(jsonFile.text());
+    data[new Date().toUTCString()] = root.sessionFocusTimeMsec;
+    jsonFile.setText(JSON.stringify(data));
+  }
+
+  /** Return today's focus time milliseconds. */
+  function calcFocusToday() {
+    let startOfToday = new Date(); startOfToday.setUTCHours(0, 0, 0, 0);
+    let endOfToday = new Date(startOfToday); endOfToday.setUTCHours(23, 59, 59, 999);
+
+    return calcFocusTime(startOfToday, endOfToday);
+  }
+
+  /** Calculate time focused between datetimes `from` and `to`
+   * @param {Date} from Will only calculate sessions *after* this date.
+   * @param {Date} to Will only calculate sessions *before* this date.
+   * @return {Number} Focused time in milliseconds.
+   */
+  function calcFocusTime(from, to) {
+    const data = JSON.parse(jsonFile.text());
+
+    let output = 0;
+
+    Object.keys(data).forEach((s) => {
+      const d = new Date(s);
+      if (d < from || d > to) return;
+      output += data[s];
+    })
+
+    return output;
+  }
+
+  /** Return the given pomo mode in a human readable title case.
+   * Note: if no mode is given, the current pomo mode is assumed.
+   * @return {String} The mode in title case.
+   */
+  function getPomoTitleCase(m = undefined) {
+    const mode = m ?? root.pomo.mode;
+    let out = "";
+    mode.replace("_", " ").toLowerCase().split(" ").forEach(word => {
+      out += word[0].toUpperCase() + word.substring(1, word.length) + " "
+    })
+
+    return out.trim();
+  }
+
+  /** Return the given pomo mode in a human readable lower case.
+   * Note: if no mode is given, the current pomo mode is assumed.
+   * @return {String} The mode in lower case.
+   */
+  function getPomoLowerCase(m = undefined) {
+    const mode = m ?? root.pomo.mode;
+
+    return mode.toLowerCase().replace("_", " ").trim();
   }
 
   /**
@@ -133,7 +374,7 @@ Singleton {
     return `${h}:${m}:${s}.${ms}`
   }
 
-  /** Format duration into hh'h' mm'm', e.g. 8h 30m.
+  /** Format duration with units, e.g. 8h 30m.
    * @param {Number} duration The duration in milliseconds.
    * @return {String}         Formatted duration.
    */
@@ -207,245 +448,5 @@ Singleton {
         return 'th'
 
     }
-  }
-
-  /** Create a new timer.
-   * @param {String} timerTitle The title of the timer.
-   * @param {Number} duration The duration of the timer in milliseconds.
-   * @return {Number} The id of the timer.
-   */
-  function createTimer(timerTitle, duration) {
-    const timerId = root.timersModel.count;
-    root.timersModel.append({
-      id: timerId,
-      title: timerTitle || "Unnamed",
-      running: true,
-      initialDuration: duration,
-      timeLeft: duration
-    });
-
-    return timerId;
-  }
-
-  /** Set stopwatch running state.
-   * @param {Boolean} state
-   */
-  function setStopwatch(state) {
-    root.stopwatchRunning = state;
-  }
-
-  /** Toggle stopwatch running state. */
-  function toggleStopwatch() {
-    root.stopwatchRunning = !root.stopwatchRunning;
-  }
-
-  /** Reset stopwatch and pause it. */
-  function resetStopwatch() {
-    root.stopwatchRunning = false;
-    root.stopwatch = 0;
-  }
-
-  /** Find the timer index in timersModel that has a certain id.
-   * @param {Number} id The id of the timer.
-   * @return {Number || Null} The timer's index or Null if it's not found.
-   */
-  function _getRealTimerId(id) {
-    for (let i = 0; i < root.timersModel.count; i++) {
-      const current = root.timersModel.get(i);
-
-      if (current.id !== id) continue;
-
-      return i;
-    }
-
-    return Null;
-  }
-
-  /** Set a timer's running state.
-   * @param {Number} id The id of the timer.
-   * @param {Boolean} state The state to set the timer to.
-   */
-  function setTimer(id, state) {
-    root.timersModel.setProperty(_getRealTimerId(id), "running", state);
-  }
-
-  /** Toggle a timer's running state.
-   * @param {Number} id The id of the timer.
-   */
-  function toggleTimer(id) {
-    const timerIdx = _getRealTimerId(id)
-    const timer = root.timersModel.get(timerIdx);
-
-    root.timersModel.setProperty(timerIdx, "running", !timer.running);
-  }
-
-  /** Reset a timer and pause it.
-   * @param {Number} id The id of the timer.
-   */
-  function resetTimer(id) {
-    const timerIdx = _getRealTimerId(id)
-    const timer = root.timersModel.get(timerIdx);
-
-    root.timersModel.setProperty(timerIdx, "running", false);
-    root.timersModel.setProperty(timerIdx, "timeLeft", timer.initialDuration);
-  }
-
-  /** Remove a timer.
-   * @param {Number} id The id of the timer.
-   */
-  function removeTimer(id) {
-    root.timersModel.remove(_getRealTimerId(id));
-  }
-
-  /** Return the given pomo mode in a human readable title case.
-   * Note: if no mode is given, the current pomo mode is assumed.
-   * @return {String} The mode in title case.
-   */
-  function getPomoTitleCase(m = undefined) {
-    const mode = m ?? root.pomo.mode;
-    let out = "";
-    mode.replace("_", " ").toLowerCase().split(" ").forEach(word => {
-      out += word[0].toUpperCase() + word.substring(1, word.length) + " "
-    })
-
-    return out.trim();
-  }
-
-  /** Return the given pomo mode in a human readable lower case.
-   * Note: if no mode is given, the current pomo mode is assumed.
-   * @return {String} The mode in lower case.
-   */
-  function getPomoLowerCase(m = undefined) {
-    const mode = m ?? root.pomo.mode;
-
-    return mode.toLowerCase().replace("_", " ").trim();
-  }
-
-  /** Store focus time stastics into a file. */
-  function logFocusSession() {
-    if (root.pomo.mode === "FOCUS") {
-      root.pomoTime += root.pomo.initialDuration - root.pomo.timeLeft;
-    }
-
-    let data = JSON.parse(jsonFile.text());
-    data[new Date().toUTCString()] = Math.max(0, root.pomoTime - root.loggedPomoTime);
-    jsonFile.setText(JSON.stringify(data));
-    root.loggedPomoTime = root.pomoTime;
-  }
-
-  /** Calculate time focused between datetimes `from` and `to`
-   * @param {Date} from Will only calculate sessions *after* this date.
-   * @param {Date} to Will only calculate sessions *before* this date.
-   * @return {Number} Focused time in milliseconds.
-   */
-  function calcFocusTime(from, to) {
-    const data = JSON.parse(jsonFile.text());
-
-    let output = 0;
-
-    Object.keys(data).forEach((s) => {
-      const d = new Date(s);
-      if (d < from || d > to) return;
-      output += data[s];
-    })
-
-    return output;
-  }
-
-  function loadFocusTime() {
-    let startOfToday = new Date(); startOfToday.setUTCHours(0, 0, 0, 0);
-    let endOfToday = new Date(startOfToday); endOfToday.setUTCHours(23, 59, 59, 999);
-
-    root.pomoTime = calcFocusTime(startOfToday, endOfToday);
-    root.loggedPomoTime = root.pomoTime;
-  }
-
-  /** Start a new focus session. */
-  function startFocusSession() {
-    root.focusing = true;
-    root.pomo.paused = false;
-    root.pomoSessions = 0;
-    setPomoMode("FOCUS");
-  }
-
-  /** End the current focus session. */
-  function endFocusSession() {
-    root.focusing = false;
-    root.pomo.paused = true;
-    logFocusSession();
-    loadFocusTime();
-  }
-
-  /** Toggle pomodoro puase state. */
-  function togglePomoPause() {
-    root.pomo.paused = !root.pomo.paused;
-  }
-
-  /** Set pomodoro mode.
-   * Note: simply sets the active mode and timer.
-   * @param {String} m The mode.
-   * @param {Number} duration A custom duration (milliseconds), if not specified uses the default value for the given mode.
-   */
-  function setPomoMode(m, duration = undefined) {
-    if (!m in Object.keys(root.pomoDurations)) {
-      console.error(`SetPomoMode: invalid mode '${m}'.`);
-      return;
-    }
-
-    const pomoTime = duration ?? root.pomoDurations[m];
-
-    root.pomo.mode = m;
-    root.pomo.initialDuration = pomoTime;
-    root.pomo.timeLeft = pomoTime;
-  }
-
-
-  /** Get the next pomo mode after the current one.
-   * @return {String} The next pomo mode.
-   */
-  function getNextPomo() {
-    if (root.pomo.mode !== "FOCUS") {
-      return "FOCUS";
-    }
-
-    const nextSessionsCount = root.pomoSessions + 1;
-    if (nextSessionsCount % Config.pomo.sessionsBeforeLongBreak === 0) {
-      return "LONG_BREAK"
-    }
-
-    return "SHORT_BREAK";
-  }
-
-  /** Go to the next pomodoro mode. */
-  function nextPomoMode() {
-    const m = getNextPomo();
-
-    if (m === "FOCUS") {
-      root.pomoSessions++;
-    }
-
-    // auto-start behavior
-    if (pomo.timeLeft !== 0) {
-      root.pomo.paused = false;
-    } else {
-      // TODO: consult the user config (not yet created) instead
-      root.pomo.paused = true;
-    }
-
-    logFocusSession();
-    setPomoMode(m);
-  }
-
-  /** Reset the pomodoro timer to the initial value. */
-  function resetPomoTimer() {
-    root.pomo.paused = true;
-    root.pomo.timeLeft = root.pomo.initialDuration;
-  }
-
-  /** Change pomodoro mode timer by delta amount.
-   * @param {Number} delta Number of milliseconds.
-   */
-  function updatePomoTimer(delta) {
-    root.pomo.timeLeft = Math.max(0, root.pomoTimer + delta);
   }
 }

@@ -30,7 +30,7 @@ Item {
     acceptedButtons: Qt.LeftButton | Qt.RightButton
     onClicked: (event) => {
       if (event.button === Qt.LeftButton) {
-        Clock.togglePomoPause()
+        Clock.togglePomo()
       } else if (event.button === Qt.RightButton) {
         Clock.endFocusSession()
       }
