@@ -11,6 +11,8 @@ import "./widgets/"
 Item {
   id: root
 
+  property alias rect: rect
+
   property var monitor
 
   property bool leftBarOpen: (ShellState.leftBar.isShown(monitor?.name))
