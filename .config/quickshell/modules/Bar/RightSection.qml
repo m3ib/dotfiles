@@ -11,6 +11,8 @@ import "widgets"
 Item {
   id: root
 
+  property alias rect: rect
+
   property var monitor
 
   property bool shouldShow: !Hypr.isFullscreenMonitor(monitor?.name) && row.children.length > 0

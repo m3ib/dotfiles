@@ -11,6 +11,8 @@ import qs.services
 Item {
   id: root
 
+  property alias rect: rect
+
   property var monitor
 
   property bool shouldShow: !Hypr.isFullscreenMonitor(monitor?.name) && row.children.length > 0
@@ -18,14 +20,33 @@ Item {
   implicitWidth: rect.width
   visible: shouldShow
 
+  /** Truncate a string if it's longer than len.
+   * @param {String} str The string to truncate.
+   * @param {Number} maxLen If longer than this, then it's truncated.
+   * @return {String} A string that's maxLen long or less.
+   */
+     else {
+      root.visible = true
+     else {
+      root.visible = true
+     else {
+      root.visible = true
+  function truncate(str, maxLen) {
+    if (str.length <= maxLen) {
+      return str;
+    }
+
+    return str.substring(0, Math.floor(maxLen/2)) + "…" + str.substring(str.length - Math.floor(maxLen/2))
+  }
+
   Behavior on opacity {
     NumberAnimation { duration: Config.duration.animations }
   }
 
   onShouldShowChanged: {
-    if (!shouldShow)
+    if (!shouldShow) {
       animTimer.running = true
-     else {
+    } else {
       root.visible = true
     }
     root.opacity = shouldShow ? 1 : 0
@@ -70,7 +91,7 @@ Item {
     spacing: Config.spacing.barComp
 
     Text {
-      text: Hyprland.activeToplevel.title
+      text: truncate(Hyprland.activeToplevel.title, 48)
     }
   }
 

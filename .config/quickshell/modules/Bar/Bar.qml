@@ -29,10 +29,20 @@ ShellRoot {
       implicitHeight: modelData.height // fullscreen
 
       color: "transparent"
-      mask: Region { item: rect }
+      mask: Region {
+        item: leftSection.visible ? leftSection.rect : nullRegion
+        Region { item: centerSection.visible ? centerSection.rect : nullRegion }
+        Region { item: rightSection.visible ? rightSection.rect : nullRegion }
+      }
       exclusiveZone: Config.size.bar
 
-      // responsible for the dimensions of the actual bar
+      Item {
+        id: nullRegion
+
+        width: 0; height: 0
+        x: 0; y: 0
+      }
+
       Rectangle {
         id: rect
 
@@ -46,6 +56,8 @@ ShellRoot {
           spacing: Config.spacing.barSection
 
           LeftSection {
+            id: leftSection
+
             monitor: root.modelData
 
             Layout.fillWidth: true
@@ -53,12 +65,16 @@ ShellRoot {
           }
 
           CenterSection {
+            id: centerSection
+
             monitor: root.modelData
 
             Layout.fillHeight: true
           }
 
           RightSection {
+            id: rightSection
+
             monitor: root.modelData
 
             Layout.fillWidth: true
