@@ -26,5 +26,9 @@ Clickable {
 
     anchors.centerIn: parent
     text: ""
+
+    Behavior on color {
+      ColorAnimation { duration: Config.duration.animations; easing.type: Easing.InOutQuad }
+    }
   }
 }

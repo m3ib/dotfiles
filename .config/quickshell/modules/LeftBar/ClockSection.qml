@@ -59,10 +59,53 @@ Item {
             color: Config.clr.primaryLt
           }
 
-          Text {
-            Layout.alignment: Qt.AlignHCenter
-            text: Clock.fmtDuration(Clock.pomo.timeLeft)
-            font.pixelSize: Config.fontSize.heading
+          RowLayout {
+            Layout.fillWidth: true
+
+            Button {
+              area.onClicked: Clock.updatePomoTimer(-5*60_000)
+              area.hoverEnabled: true
+
+              width: body.width + 8*2
+              height: body.height + 8*2
+              bg: "transparent"
+              body.text: "-5m"
+              body.color: area.containsMouse ? Config.clr.fg : Config.clr.fgDrk
+            }
+
+            CTextField {
+              id: pomoTimer
+
+              Layout.alignment: Qt.AlignHCenter
+              Layout.fillWidth: true
+              text: Clock.fmtDuration(Clock.pomo.timeLeft)
+              readOnly: !Clock.pomo.paused
+              focus: false
+              font.pixelSize: Config.fontSize.heading
+              placeholderText: Clock.fmtDuration(Clock.pomo.timeLeft)
+              onPressed: {
+                Clock.pomo.paused = true;
+                focus = true;
+              }
+              onEditingFinished: {
+                if (!pomoTimer.text.includes(":")) {
+                  Clock.setPomoTimer(Clock.parseDuration(pomoTimer.text));
+                }
+                Clock.pomo.paused = false;
+                focus = false;
+              }
+            }
+
+            Button {
+              area.onClicked: Clock.updatePomoTimer(5*60_000)
+              area.hoverEnabled: true
+
+              width: body.width + 8*2
+              height: body.height + 8*2
+              bg: "transparent"
+              body.text: "+5m"
+              body.color: area.containsMouse ? Config.clr.fg : Config.clr.fgDrk
+            }
           }
 
           Text {
@@ -131,6 +174,16 @@ Item {
 
       Text {
         text: `${Clock.fmtHumanDuration(Clock.todayFocusTimeMsec)} Focused Today.`
+
+        Clickable {
+          anchors.fill: parent
+          area.hoverEnabled: true
+          area.onClicked: Clock.refreshTodayFocus()
+
+          ToolTip.delay: 1200
+          ToolTip.visible: area.containsMouse
+          ToolTip.text: "Refresh"
+        }
       }
 
       Button {

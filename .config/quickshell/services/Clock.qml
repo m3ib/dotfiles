@@ -91,9 +91,7 @@ Singleton {
     }
   }
 
-  Component.onCompleted: {
-    root.todayFocusTimeMsec = calcFocusToday();
-  }
+  Component.onCompleted: refreshTodayFocus()
 
   /** Set stopwatch running state.
    * @param {Boolean} state
@@ -197,7 +195,7 @@ Singleton {
     root.focusing = false;
     root.pomo.paused = true;
     nextPomoMode(); logFocusSession();
-    root.todayFocusTimeMsec = calcFocusToday();
+    refreshTodayFocus();
     Caffeine.disableRequest(root.caffeineId);
   }
 
@@ -210,7 +208,7 @@ Singleton {
     }
 
     // auto-start behavior
-    if (pomo.timeLeft !== 0) {
+    if (pomo.timeLeft !== 0) { // explicit user-skip
       root.pomo.paused = false;
     } else {
       // TODO: consult the user config (not yet created) instead
@@ -268,28 +266,41 @@ Singleton {
     root.pomo.timeLeft = root.pomo.initialDuration;
   }
 
-  /** Change pomodoro mode timer by delta amount.
+  /** Set pomodoro timer to value.
+   * @param {Number} delta Number of milliseconds.
+   */
+  function setPomoTimer(val) {
+    root.sessionFocusTimeMsec += root.pomo.initialDuration - root.pomo.timeLeft;
+    root.pomo.initialDuration = val;
+    root.pomo.timeLeft = val;
+  }
+
+  /** Change pomodoro timer by delta amount.
    * @param {Number} delta Number of milliseconds.
    */
   function updatePomoTimer(delta) {
-    root.pomo.timeLeft = Math.max(0, root.pomoTimer + delta);
+    root.sessionFocusTimeMsec += root.pomo.initialDuration - root.pomo.timeLeft;
+    root.pomo.initialDuration = Math.max(0, root.pomo.timeLeft + delta);
+    root.pomo.timeLeft = root.pomo.initialDuration;
   }
 
   /** Store focus time stastics into a file. */
   function logFocusSession() {
-    if (root.sessionFocusTimeMsec <= 0) return;
+    if (root.sessionFocusTimeMsec <= 1000) return;
 
     let data = JSON.parse(jsonFile.text());
     data[new Date().toUTCString()] = root.sessionFocusTimeMsec;
     jsonFile.setText(JSON.stringify(data));
+
+    root.sessionFocusTimeMsec = 0; // prevent re-logging
   }
 
-  /** Return today's focus time milliseconds. */
-  function calcFocusToday() {
+  /** Recalculate today's focus time. */
+  function refreshTodayFocus() {
     let startOfToday = new Date(); startOfToday.setUTCHours(0, 0, 0, 0);
     let endOfToday = new Date(startOfToday); endOfToday.setUTCHours(23, 59, 59, 999);
 
-    return calcFocusTime(startOfToday, endOfToday);
+    root.todayFocusTimeMsec = calcFocusTime(startOfToday, endOfToday);
   }
 
   /** Calculate time focused between datetimes `from` and `to`
