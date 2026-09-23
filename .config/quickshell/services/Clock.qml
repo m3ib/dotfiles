@@ -195,7 +195,6 @@ Singleton {
     root.focusing = false;
     root.pomo.paused = true;
     nextPomoMode(); logFocusSession();
-    refreshTodayFocus();
     Caffeine.disableRequest(root.caffeineId);
   }
 
@@ -292,6 +291,7 @@ Singleton {
     data[new Date().toUTCString()] = root.sessionFocusTimeMsec;
     jsonFile.setText(JSON.stringify(data));
 
+    root.todayFocusTimeMsec += root.sessionFocusTimeMsec;
     root.sessionFocusTimeMsec = 0; // prevent re-logging
   }
 
