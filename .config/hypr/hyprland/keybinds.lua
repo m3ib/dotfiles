@@ -219,4 +219,5 @@ hl.bind(mainMod .. " + F2", hl.dsp.exec_cmd("echo -n $(hyprpicker) | wl-copy"))
 -- quickshell
 hl.bind(mainMod .. " + Tab", hl.dsp.exec_cmd("qs ipc call workspaces toggle"))
 hl.bind(mainMod .. " + bracketLeft", hl.dsp.exec_cmd("qs ipc call leftBar toggle"))
+hl.bind(mainMod .. " + bracketRight", hl.dsp.exec_cmd("qs ipc call rightBar toggle"))
 hl.bind("Print", hl.dsp.exec_cmd("qs ipc call screenshot toggle"))

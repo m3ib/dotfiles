@@ -66,7 +66,7 @@ Singleton {
 
         if (newTimeLeft < 0) {
           OsdService.showOsd(`Timer "${current.title}" ended.`);
-          ShellState.leftBar.show();
+          ShellState.showBar(ShellState.leftBar);
         }
 
         root.timersModel.setProperty(i, "timeLeft", newTimeLeft);

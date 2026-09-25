@@ -9,57 +9,9 @@ import QtQuick
 Singleton {
   property var leftBar: QtObject {
     property list<string> activeMonitors: [];
-
-    /** Check whether the left bar is shown on the given monitor or not.
-     * @param {String} mon The target monitor (default: the active monitor).
-     * @return {Boolean}
-     */
-    function isShown(mon) {
-      const targetMon = mon || Hyprland.focusedMonitor.name;
-      return leftBar.activeMonitors.includes(targetMon);
-    }
-
-    /** Show the left bar on the given monitor.
-     * @param {String} mon The target monitor (default: the active monitor).
-     */
-    function show(mon) {
-      const targetMon = mon || Hyprland.focusedMonitor.name;
-      if (leftBar.isShown(targetMon)) return;
-      leftBar.activeMonitors = [...leftBar.activeMonitors, targetMon];
-    }
-
-    /** Show the left bar on all monitors. */
-    function showAll() {
-      Hyprland.monitors.values.forEach((mon) => {
-        if (leftBar.isShown(mon?.name)) return;
-        leftBar.activeMonitors = [...leftBar.activeMonitors, mon];
-      })
-    }
-
-    /** Hide the left bar on the given monitor.
-     * @param {String} mon The target monitor (default: the active monitor).
-     */
-    function hide(mon) {
-      const targetMon = mon || Hyprland.focusedMonitor.name;
-      leftBar.activeMonitors = leftBar.activeMonitors.filter((m) => m !== targetMon);
-    }
-
-    /** Hide the left bar on all monitors. */
-    function hideAll() {
-      leftBar.activeMonitors = [];
-    }
-
-    /** Toggle the left bar on the given monitor.
-     * @param {String} mon The target monitor. (default: the active monitor)
-     */
-    function toggle(mon) {
-      if (leftBar.isShown(mon)) {
-        leftBar.hide(mon);
-        return;
-      }
-
-      leftBar.show(mon);
-    }
+  }
+  property var rightBar: QtObject {
+    property list<string> activeMonitors: [];
   }
   property var workspaces: QtObject {
     property bool show: false;
@@ -72,9 +24,17 @@ Singleton {
   IpcHandler {
     target: "leftBar"
 
-    function toggle(): void { leftBar.toggle() }
-    function showAll(): void { leftBar.showAll() }
-    function hideAll(): void { leftBar.hideAll() }
+    function toggle(): void { toggleBar(leftBar) }
+    function showAll(): void { showBarAll(leftBar) }
+    function hideAll(): void { hideBarAll(leftBar) }
+  }
+
+  IpcHandler {
+    target: "rightBar"
+
+    function toggle(): void { toggleBar(rightBar) }
+    function showAll(): void { showBarAll(rightBar) }
+    function hideAll(): void { hideBarAll(rightBar) }
   }
 
   IpcHandler {
@@ -89,5 +49,66 @@ Singleton {
     target: "screenshot"
 
     function toggle(): void { ShellState.screenshot.show = !ShellState.screenshot.show }
+  }
+
+  /** Check whether the bar is shown on the given monitor or not.
+   * @param {QtObject} bar The bar to operate on.
+   * @param {String} mon The target monitor (default: the active monitor).
+   * @return {Boolean}
+   */
+  function isBarShown(bar, mon) {
+    const targetMon = mon || Hyprland.focusedMonitor?.name;
+
+    return bar.activeMonitors.includes(targetMon);
+  }
+
+  /** Show the left bar on the given monitor.
+   * @param {QtObject} bar The bar to operate on.
+   * @param {String} mon The target monitor (default: the active monitor).
+   */
+  function showBar(bar, mon) {
+    const targetMon = mon || Hyprland.focusedMonitor.name;
+
+    if (isBarShown(bar, targetMon)) return;
+    bar.activeMonitors = [...bar.activeMonitors, targetMon];
+  }
+
+  /** Show the bar on all monitors.
+   * @param {QtObject} bar The bar to operate on.
+   * */
+  function showBarAll(bar) {
+    Hyprland.monitors.values.forEach((mon) => {
+      if (isBarShown(bar, mon?.name)) return;
+      bar.activeMonitors = [...bar.activeMonitors, mon];
+    })
+  }
+
+  /** Hide the left bar on the given monitor.
+   * @param {QtObject} bar The bar to operate on.
+   * @param {String} mon The target monitor (default: the active monitor).
+   */
+  function hideBar(bar, mon) {
+    const targetMon = mon || Hyprland.focusedMonitor.name;
+    bar.activeMonitors = bar.activeMonitors.filter((m) => m !== targetMon);
+  }
+
+  /** Hide the bar on all monitors.
+   * @param {QtObject} bar The bar to operate on.
+   * */
+  function hideBarAll(bar) {
+    bar.activeMonitors = [];
+  }
+
+  /** Toggle the bar on the given monitor.
+   * @param {QtObject} bar The bar to operate on.
+   * @param {String} mon The target monitor. (default: the active monitor)
+   */
+  function toggleBar(bar, mon) {
+    if (isBarShown(bar, mon)) {
+      hideBar(bar, mon);
+      return;
+    }
+
+    showBar(bar, mon);
   }
 }

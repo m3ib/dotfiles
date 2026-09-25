@@ -15,6 +15,7 @@ Item {
 
   property var monitor
 
+  property bool rightBarOpen: ShellState.isBarShown(ShellState.rightBar, monitor?.name)
   property bool shouldShow: !Hypr.isFullscreenMonitor(monitor?.name) && row.children.length > 0
 
   visible: shouldShow
@@ -53,7 +54,7 @@ Item {
     anchors.right: parent.right
     width: row.implicitWidth + Config.spacing.barHPadding*2
     height: parent.height
-    bottomLeftRadius: Config.size.rounding
+    bottomLeftRadius: root.rightBarOpen ? 0 : Config.size.rounding
     color: Config.clr.bg
 
     Behavior on width {
@@ -86,5 +87,12 @@ Item {
     anchors.right: parent.right
     y: parent.height
     angle: 180
+  }
+
+  Corner {
+    anchors.bottom: parent.bottom
+    x: root.width - rect.width - width
+    angle: -90
+    visible: root.rightBarOpen
   }
 }
