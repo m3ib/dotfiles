@@ -61,7 +61,9 @@ hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd(filesAlt))
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.window.kill())
 hl.bind(mainMod .. " + W", hl.dsp.window.float({ action = "toggle" }))
+hl.bind(mainMod .. " + C", hl.dsp.window.center())
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
+hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "maximized" }))
 hl.bind(mainMod .. " + comma", hl.dsp.window.pin())
 
 -- move focus
@@ -212,15 +214,9 @@ hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tru
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
 
 -- utilities
-local screenshotPath = os.getenv("HOME") .. "/pics/screenshots"
-hl.bind("Print", hl.dsp.exec_cmd("hyprshot -zm region --clipboard-only"))
-hl.bind("CTRL + Print", hl.dsp.exec_cmd("hyprshot -zm region -o " .. screenshotPath))
-hl.bind("SHIFT + Print", hl.dsp.exec_cmd("hyprshot -m window -m active --clipboard-only"))
-hl.bind("CTRL + SHIFT + Print", hl.dsp.exec_cmd("hyprshot -m window -m active -o " .. screenshotPath))
-hl.bind("ALT + Print", hl.dsp.exec_cmd("hyprshot -m output -m active --clipboard-only"))
-hl.bind("CTRL + ALT + Print", hl.dsp.exec_cmd("hyprshot -m output -m active -o " .. screenshotPath))
 hl.bind(mainMod .. " + F2", hl.dsp.exec_cmd("echo -n $(hyprpicker) | wl-copy"))
 
 -- quickshell
 hl.bind(mainMod .. " + Tab", hl.dsp.exec_cmd("qs ipc call workspaces toggle"))
 hl.bind(mainMod .. " + bracketLeft", hl.dsp.exec_cmd("qs ipc call leftBar toggle"))
+hl.bind("Print", hl.dsp.exec_cmd("qs ipc call screenshot toggle"))
