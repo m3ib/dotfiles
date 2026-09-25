@@ -64,6 +64,9 @@ Singleton {
   property var workspaces: QtObject {
     property bool show: false;
   }
+  property var screenshot: QtObject {
+    property bool show: false;
+  }
 
 
   IpcHandler {
@@ -80,5 +83,11 @@ Singleton {
     function toggle(): void { ShellState.workspaces.show = !ShellState.workspaces.show }
     function show(): void { ShellState.workspaces.show = true }
     function hide(): void { ShellState.workspaces.show = false }
+  }
+
+  IpcHandler {
+    target: "screenshot"
+
+    function toggle(): void { ShellState.screenshot.show = !ShellState.screenshot.show }
   }
 }

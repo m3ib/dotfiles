@@ -92,8 +92,11 @@ Singleton {
   }
 
   readonly property var path: QtObject {
-    readonly property string scripts: `${Quickshell.env("HOME")}/.config/hypr/scripts`
-    readonly property string wallpapers: `${Quickshell.env("HOME")}/.walls`
-    readonly property string data: `${Quickshell.env("HOME")}/.local/share/quickshell`
+    readonly property string home: Quickshell.env("HOME")
+    readonly property string pictures: Quickshell.execDetached(["sh", "-c", ". ~/.config/user-dirs.dirs; echo $XDG_PICTURES_DIR"]) || `${home}/pics`
+    readonly property string scripts: `${home}/.config/hypr/scripts`
+    readonly property string wallpapers: `${home}/.walls`
+    readonly property string data: `${home}/.local/share/quickshell`
+    readonly property string screenshots: `${pictures}/screenshots`
   }
 }
