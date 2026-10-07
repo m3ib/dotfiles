@@ -16,7 +16,7 @@ Item {
   property var monitor
 
   property bool leftBarOpen: ShellState.isBarShown(ShellState.leftBar, monitor?.name)
-  property bool shouldShow: !Hypr.isFullscreenMonitor(monitor?.name) && row.children.length > 0
+  property bool shouldShow: row.children.length > 0
 
   visible: shouldShow
 

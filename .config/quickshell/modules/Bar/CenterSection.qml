@@ -15,7 +15,7 @@ Item {
 
   property var monitor
 
-  property bool shouldShow: !Hypr.isFullscreenMonitor(monitor?.name) && row.children.length > 0
+  property bool shouldShow: row.children.length > 0
 
   implicitWidth: rect.width
   visible: shouldShow
