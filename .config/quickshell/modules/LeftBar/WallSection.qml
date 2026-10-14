@@ -51,6 +51,7 @@ Item {
         id: wallImg
 
         width: parent.width
+        asynchronous: true
         source: `file://${modelPath}`
         sourceSize.width: parent.width
       }
