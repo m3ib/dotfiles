@@ -5,21 +5,58 @@ local conform = require("conform")
 local oil = require("oil")
 local gitsigns = require("gitsigns")
 
+local scratchBufName = "ScratchBuffer"
+local scratchBufNum = -1
+
 wk.add({
-  -- Util
-  { "<ESC>", ":nohl<CR>" },
-  { "<Esc><Esc>", "<C-\\><C-n>", mode = "t", desc = "Exit terminal mode" },
   -- Misc
+  { "<ESC>", "<cmd>nohl<CR>" },
+  { "<C-s>", "<cmd>w<CR>" },
+  { "<Esc><Esc>", "<C-\\><C-n>", mode = "t", desc = "Exit terminal mode" },
   { "<leader>e", oil.toggle_float, desc = "Toggle Oil" },
-  { "<leader>r", ":Neotree toggle<CR>", desc = "Toggle Neo-Tree" },
-  { "<leader>l", ":Lazy<CR>", desc = "Lazy" },
+  { "<leader>r", "<cmd>Neotree toggle<CR>", desc = "Toggle Neo-Tree" },
+  { "<leader>l", "<cmd>Lazy<CR>", desc = "Lazy" },
+  {
+    "<leader><leader>",
+    function()
+      -- local buf = vim.fn.bufnr(scratchBufName)
+      if scratchBufNum == -1 then
+        scratchBufNum = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_name(scratchBufNum, scratchBufName)
+        vim.keymap.set("n", "<ESC>", "<cmd>close<CR>", {
+          buffer = scratchBufNum,
+        })
+      end
+
+      -- if a window is already opened, close it
+      local winId = vim.fn.bufwinid(scratchBufNum)
+      if winId ~= -1 then
+        vim.api.nvim_win_close(winId, true)
+        return
+      end
+
+      -- otherwise, make a new one
+      local ratio = 2 / 3
+      local w, h = math.floor(vim.o.columns * ratio), math.floor(vim.o.lines * ratio)
+      local opts = {
+        relative = "editor",
+        width = w,
+        height = h,
+        col = (vim.o.columns - w) / 2,
+        row = (vim.o.lines - h) / 2,
+      }
+      local win = vim.api.nvim_open_win(scratchBufNum, 0, opts)
+      -- vim.api.nvim_set_option_value("winhl", "Normal:MyHighlight", { win = win })
+    end,
+    desc = "Toggle Scratch Buffer",
+  },
   -- Quiting & Saving
-  { "<leader>qq", ":qa!<CR>", desc = "Quit All (force)" },
-  { "<leader>qu", ":suspend<CR>", desc = "Suspend" },
-  { "<leader>qw", ":wqa<CR>", desc = "Quit All (saving)" },
+  { "<leader>qq", "<cmd>qa!<CR>", desc = "Quit All (force)" },
+  { "<leader>qu", "<cmd>suspend<CR>", desc = "Suspend" },
+  { "<leader>qw", "<cmd>wqa<CR>", desc = "Quit All (saving)" },
   {
     "<leader>qs",
-    ":wqa | mksession" .. vim.fn.expand("~/.nvim/") .. vim.fn.getcwd():match("([^/]+)$") .. ".vim" .. "<CR>",
+    "<cmd>wqa | mksession" .. vim.fn.expand("~/.nvim/") .. vim.fn.getcwd():match("([^/]+)$") .. ".vim" .. "<CR>",
     desc = "Write, quit & save session (saving)",
   },
   -- Telescope
@@ -31,7 +68,7 @@ wk.add({
   { "<leader>fk", builtin.keymaps, desc = "Telescope Find Keymap" },
   { "<leader>fh", builtin.help_tags, desc = "Telescope Find Help" },
   { "<leader>fc", builtin.colorscheme, desc = "Telescope Find Colorscheme" },
-  { "<leader>ft", ":TodoTelescope<CR>", desc = "Telescope Find Todos" },
+  { "<leader>ft", "<cmd>TodoTelescope<CR>", desc = "Telescope Find Todos" },
   -- Code
   { "<leader>c", group = "Code" },
   { "<leader>ca", vim.lsp.buf.code_action, desc = "Code Actions" },
@@ -47,10 +84,10 @@ wk.add({
   { "<leader>cf", conform.format, desc = "Code Format" },
   -- Buffers
   { "<leader>b", group = "Buffer" },
-  { "<leader>bn", ":bnext<CR>", desc = "Buffer Next" },
-  { "<leader>bp", ":bprevious<CR>", desc = "Buffer Previous" },
-  { "<leader>bd", ":bd<CR>", desc = "Buffer Delete" },
-  { "<leader>bo", ":buf #<CR>", desc = "Buffer Go to Other" },
+  { "<leader>bn", "<cmd>bnext<CR>", desc = "Buffer Next" },
+  { "<leader>bp", "<cmd>bprevious<CR>", desc = "Buffer Previous" },
+  { "<leader>bd", "<cmd>bd<CR>", desc = "Buffer Delete" },
+  { "<leader>bo", "<cmd>buf #<CR>", desc = "Buffer Go to Other" },
   -- delete all buffers before and after this one
   {
     "<leader>bO",
@@ -67,16 +104,16 @@ wk.add({
     end,
     desc = "Buffer Close others",
   },
-  { "<S-l>", ":bnext<CR>", desc = "Buffer Next" },
-  { "<S-h>", ":bprevious<CR>", desc = "Buffer Previous" },
-  { "]b", ":bnext<CR>", desc = "Buffer Next" },
-  { "[b", ":previous<CR>", desc = "Buffer Previous" },
+  { "<S-l>", "<cmd>bnext<CR>", desc = "Buffer Next" },
+  { "<S-h>", "<cmd>bprevious<CR>", desc = "Buffer Previous" },
+  { "]b", "<cmd>bnext<CR>", desc = "Buffer Next" },
+  { "[b", "<cmd>previous<CR>", desc = "Buffer Previous" },
   -- Terminal
   { "<leader>t", group = "Terminal" },
-  { "<leader>tt", ":terminal<CR>a", desc = "Open Terminal New Buffer" },
+  { "<leader>tt", "<cmd>terminal<CR>a", desc = "Open Terminal New Buffer" },
   -- Git
   { "<leader>g", group = "Git" },
-  { "<leader>gs", ":Neotree float git_status<CR>", desc = "Git Status" },
+  { "<leader>gs", "<cmd>Neotree float git_status<CR>", desc = "Git Status" },
   { "<leader>gS", builtin.git_stash, desc = "Git Stash" },
   { "<leader>gc", builtin.git_commits, desc = "Git Commits" },
   { "<leader>gl", gitsigns.blame_line, desc = "Git Blame line" },
