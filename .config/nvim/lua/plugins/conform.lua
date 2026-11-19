@@ -23,6 +23,7 @@ return {
       javascript = { "prettier" },
       htmldjango = { "djlint" },
       sh = { "shfmt" },
+      qml = { "qmlformat" },
     },
   },
 }
