@@ -3,6 +3,7 @@ local Conf = require("hyprland.config")
 local mainMod = "SUPER"
 -- apps
 local terminal = "kitty"
+local code = "kitty --class=nvim --title=nvim nvim"
 local browser = "zen-browser"
 local browserAlt = "brave"
 local files = "thunar"
@@ -46,16 +47,14 @@ local function get_relative_workspace(delta)
   return math.max(0, math.min(activeWs + delta, Conf.maxWsId))
 end
 
-hl.bind(
-  mainMod .. " + Super_L",
-  hl.dsp.exec_cmd('rofi -show combi -modes "combi,Emoji:$HOME/.config/hypr/scripts/emoji.sh"')
-)
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd('rofi -show combi -modes "combi,Emoji:$HOME/.config/hypr/scripts/emoji.sh"'))
 
 hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd(browserAlt))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(files))
 hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd(filesAlt))
+hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(code))
 
 -- window operations
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
